@@ -214,7 +214,7 @@ class Cover:
 
         return centers
 
-    def transform_single(self, data, center, i=0):
+    def transform_single(self, data, center, i=0, n_centers=None):
         """Compute entries of `data` in hypercube centered at `center`
 
         Parameters
@@ -228,18 +228,24 @@ class Cover:
             Optional counter to aid in verbose debugging.
         """
 
+        n_centers = n_centers or len(self.centers_)
         lowerbounds, upperbounds = center - self.radius_, center + self.radius_
 
         # Slice the hypercube
-        entries = (data[:, self.di_] >= lowerbounds) & (
-            data[:, self.di_] <= upperbounds
-        )
+        if i < n_centers - 1:
+            entries = (data[:, self.di_] >= lowerbounds) & (
+                data[:, self.di_] < upperbounds
+            )
+        elif i == n_centers - 1:
+            entries = (data[:, self.di_] >= lowerbounds) & (
+                data[:, self.di_] <= upperbounds
+            )
         hypercube = data[np.invert(np.any(entries == False, axis=1))]
 
         if self.verbose > 1:
             print(
                 "There are %s points in cube %s/%s"
-                % (hypercube.shape[0], i + 1, len(self.centers_))
+                % (hypercube.shape[0], i + 1, n_centers)
             )
 
         return hypercube
@@ -266,7 +272,7 @@ class Cover:
 
         centers = centers or self.centers_
         hypercubes = [
-            self.transform_single(data, cube, i) for i, cube in enumerate(centers)
+            self.transform_single(data, cube, i, len(centers)) for i, cube in enumerate(centers)
         ]
 
         # Clean out any empty cubes (common in high dimensions)
